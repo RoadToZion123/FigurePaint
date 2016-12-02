@@ -5,4 +5,5 @@
     <color name="colorAccent">#424242</color>
     <color name="colorBackgroundDefault">#9E9E9E</color>
     <color name="colorBackgroundPressed">#76FF03</color>
+    <color name="colorImageViewBottomSheet">#F57C00</color>
 </resources>

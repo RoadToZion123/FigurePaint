@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context="ru.startandroid.figurepaint.PaintActivity">
+
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <include
+        android:id="@+id/bottom_sheet"
+        layout="@layout/bottom_sheet"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabFinish"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_finish"
+        app:layout_anchor="@id/bottom_sheet"
+        app:backgroundTint="@color/colorImageViewBottomSheet"
+        app:layout_anchorGravity="top|left"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabInstruments"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_instruments"
+        app:layout_anchor="@id/bottom_sheet"
+        app:backgroundTint="@color/colorImageViewBottomSheet"
+        app:layout_anchorGravity="top|right"/>
+
+</android.support.design.widget.CoordinatorLayout>
