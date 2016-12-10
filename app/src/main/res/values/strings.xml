@@ -2,4 +2,6 @@
     <string name="app_name">FigurePaint</string>
     <string name="action_settings">Settings</string>
     <string name="instruments">Instruments</string>
+    <string name="permission_explanation">To﻿save﻿an﻿image,﻿the﻿app﻿requires﻿permission﻿to﻿write﻿to
+external﻿storage</string>
 </resources>

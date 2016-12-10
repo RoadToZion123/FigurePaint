@@ -1,11 +1,14 @@
 package ru.startandroid.figurepaint;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
@@ -19,13 +22,15 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.flask.colorpicker.ColorPickerView;
-import com.flask.colorpicker.OnColorSelectedListener;
 import com.flask.colorpicker.builder.ColorPickerClickListener;
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
 
-public class PaintActivity extends AppCompatActivity implements View.OnClickListener, PaintFragment.Callback{
+import java.io.File;
+
+public class PaintActivity extends AppCompatActivity implements View.OnClickListener{
 
     private int color;
     private int lastSelectedInstrument;
@@ -47,10 +52,13 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
     private ImageButton imageButtonCircle;
     private ImageButton imageButtonRectangle;
     private ImageButton imageButtonLine;
+    private ImageButton imageButtonBrush;
     private ImageButton imageButtonPallete;
 
-    private FloatingActionButton fabInstruments;
-    private FloatingActionButton fabFinish;
+    public FloatingActionButton fabInstruments;
+    public FloatingActionButton fabFinish;
+    public FloatingActionButton fabSave;
+    public FloatingActionButton fabDelete;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +120,7 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
         imageButtonCircle = (ImageButton)bottomSheet.findViewById(R.id.imageButtonCircle);
         imageButtonRectangle = (ImageButton)bottomSheet.findViewById(R.id.imageButtonRectangle);
         imageButtonLine = (ImageButton)bottomSheet.findViewById(R.id.imageButtonLine);
+        imageButtonBrush = (ImageButton)bottomSheet.findViewById(R.id.imageButtonBrush);
         imageButtonPallete = (ImageButton)bottomSheet.findViewById(R.id.imageButtonPallete);
 
         setColorInTextViewAndPallete();
@@ -119,6 +128,7 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
         imageButtonCircle.setOnClickListener(this);
         imageButtonRectangle.setOnClickListener(this);
         imageButtonLine.setOnClickListener(this);
+        imageButtonBrush.setOnClickListener(this);
         imageButtonPallete.setOnClickListener(this);
 
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
@@ -142,6 +152,14 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
         fabFinish = (FloatingActionButton)findViewById(R.id.fabFinish);
         fabFinish.setOnClickListener(this);
         fabFinish.hide();
+
+        fabSave = (FloatingActionButton)findViewById(R.id.fabSave);
+        fabSave.setOnClickListener(this);
+        fabSave.hide();
+
+        fabDelete = (FloatingActionButton)findViewById(R.id.fabDelete);
+        fabDelete.setOnClickListener(this);
+        fabDelete.hide();
     }
 
     private void setPaintColor(){
@@ -166,9 +184,51 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
         paintFragment.setLastSelectedInstrumentId(lastSelectedInstrument);
     }
 
-    private void setCanDraw(boolean can){
+    /*private void setCanDraw(boolean can){
         PaintFragment paintFragment = (PaintFragment)fragmentManager.findFragmentById(R.id.fragmentContainer);
         paintFragment.setCanDraw(can);
+    }*/
+
+    private void saveBitmap(){
+        PaintFragment paintFragment = (PaintFragment)fragmentManager.findFragmentById(R.id.fragmentContainer);
+        paintFragment.saveBitmap();
+    }
+
+    private void deleteFigure(){
+        PaintFragment paintFragment = (PaintFragment)fragmentManager.findFragmentById(R.id.fragmentContainer);
+        paintFragment.deleteFigure();
+    }
+
+    private void drawLastFigureOnBitmap(){
+        PaintFragment paintFragment = (PaintFragment)fragmentManager.findFragmentById(R.id.fragmentContainer);
+        paintFragment.drawLastFigureOnBitmap();
+    }
+
+    private File getFile(){
+        PaintFragment paintFragment = (PaintFragment)fragmentManager.findFragmentById(R.id.fragmentContainer);
+        return paintFragment.getFile();
+    }
+
+    public boolean deleteDirectory(File path) {
+        Log.d("ZHEKA", "deleteDirectory path = " + path.getAbsolutePath());
+        if( path.exists() ) {
+            Log.d("ZHEKA", "deleteDirectory path.exists() = " + path.exists());
+            File[] files = path.listFiles();
+            Log.d("ZHEKA", "deleteDirectory filesLength = " + files.length);
+            if (files == null) {
+                return true;
+            }
+            for(int i=0; i<files.length; i++) {
+                if(files[i].isDirectory()) {
+                    deleteDirectory(files[i]);
+                }
+                else {
+                    Log.d("ZHEKA", "deleteDirectory file = " + files[i].getAbsolutePath());
+                    files[i].delete();
+                }
+            }
+        }
+        return( path.delete() );
     }
 
     @Override
@@ -181,16 +241,40 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
                     Log.d("SHEET", "if");
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                     fabInstruments.setImageResource(R.drawable.ic_collapse);
-                    setCanDraw(false);
+                    //setCanDraw(false);
                 }else{
                     Log.d("SHEET", "else");
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                     fabInstruments.setImageResource(R.drawable.ic_instruments);
-                    setCanDraw(true);
+                    //setCanDraw(true);
                 }
                 break;
             case R.id.fabFinish:
-
+                drawLastFigureOnBitmap();
+                fabFinish.hide();
+                fabDelete.hide();
+                break;
+            case R.id.fabSave:
+                saveBitmap();
+                /*sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
+                        Uri.parse("file://" +
+                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) +
+                        "/" + "FigurePaintPhoto")));*/
+                File imageFile = new File(getFile().getAbsolutePath());
+                Log.d("FLASH", imageFile.getPath());
+                MediaScannerConnection.scanFile(this, new String[] { imageFile.getPath() }, new String[] { "image/jpeg" }, null);
+                fabSave.hide();
+                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "FigurePaintPhoto");
+                deleteDirectory(file);
+                DrawableCompat.setTint(drawableCircle, Color.WHITE);
+                DrawableCompat.setTint(drawableRectangle, Color.WHITE);
+                DrawableCompat.setTint(drawableLine, Color.WHITE);
+                finish();
+                break;
+            case R.id.fabDelete:
+                deleteFigure();
+                fabFinish.hide();
+                fabDelete.hide();
                 break;
             case R.id.imageButtonCircle:
                 lastSelectedInstrument = id;
@@ -213,6 +297,10 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
                 setDrawablesInImageButtons();
                 break;
             case R.id.imageButtonLine:
+                if(fabFinish.isShown()){
+                    Toast.makeText(this, "You are not save path!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 lastSelectedInstrument = id;
                 setLastSelectedInstrumentId();
 
@@ -222,14 +310,13 @@ public class PaintActivity extends AppCompatActivity implements View.OnClickList
 
                 setDrawablesInImageButtons();
                 break;
+            case R.id.imageButtonBrush:
+                BrushDialogFragment brushDialogFragment = new BrushDialogFragment();
+                brushDialogFragment.show(fragmentManager, "brush");
+                break;
             case R.id.imageButtonPallete:
                 colorPickerAlertDialog.show();
                 break;
         }
-    }
-
-    @Override
-    public void showFab() {
-        fabFinish.show();
     }
 }

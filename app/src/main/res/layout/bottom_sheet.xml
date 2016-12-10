@@ -16,7 +16,7 @@
         android:textSize="25sp"
         android:textStyle="bold"
         android:text="@string/instruments"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:layout_marginBottom="16dp"/>
 
     <LinearLayout
@@ -67,6 +67,21 @@
                 android:layout_width="70dp"
                 android:layout_height="70dp"
                 android:src="@drawable/ic_line"/>
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageButton
+                android:id="@+id/imageButtonBrush"
+                android:background="@color/colorPrimary"
+                android:layout_gravity="center"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:src="@drawable/ic_brush"/>
 
         </FrameLayout>
 

@@ -8,16 +8,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.io.File;
+
 public class PaintFragment extends Fragment{
 
     private PaintActivity paintActivity;
 
     private FigureView figureView;
     private String photoPath;
-
-    public interface Callback{
-        public void showFab();
-    }
 
     public static PaintFragment newInstance(String photoPath){
         Bundle arguments = new Bundle();
@@ -59,7 +57,27 @@ public class PaintFragment extends Fragment{
         figureView.setPaintColor(color);
     }
 
-    public void setCanDraw(boolean can){
+    public File getFile(){
+        return figureView.getFile();
+    }
+
+    /*public void setCanDraw(boolean can){
         figureView.setCanDraw(can);
+    }*/
+
+    public void saveBitmap(){
+        figureView.saveBitmap();
+    }
+
+    public void deleteFigure(){
+        figureView.deleteFigure();
+    }
+
+    public void drawLastFigureOnBitmap(){
+        figureView.drawLastFigureOnBitmap();
+    }
+
+    public FigureView getFigureView(){
+        return figureView;
     }
 }

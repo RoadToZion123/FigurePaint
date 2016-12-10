@@ -1,14 +1,21 @@
 package ru.startandroid.figurepaint;
 
+import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
@@ -21,12 +28,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final int REQUEST_CODE_CAMERA = 0;
     private static final int REQUEST_CODE_GALLERY = 1;
+    private static final int SAVE_IMAGE_PERMISSION_REQUEST_CODE = 2;
 
     public static final String EXTRA_KEY_PHOTO_PATH = "extra_key_photo_path";
 
     private int currentClickedImageButton;
 
-    private File directory;
+    private File directoryPhoto;
+    private File directoryChangedPhoto;
     private File photoFile;
 
     private Animation cameraAnimation;
@@ -69,34 +78,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d("ZHEKA", "onDestroy dirPath = " + directory.getAbsolutePath());
-        deleteDirectory(directory);
-    }
-
-    public static boolean deleteDirectory(File path) {
-        Log.d("ZHEKA", "deleteDirectory path = " + path.getAbsolutePath());
-        if( path.exists() ) {
-            File[] files = path.listFiles();
-            Log.d("ZHEKA", "deleteDirectory filesLength = " + files.length);
-            if (files == null) {
-                return true;
-            }
-            for(int i=0; i<files.length; i++) {
-                if(files[i].isDirectory()) {
-                    deleteDirectory(files[i]);
-                }
-                else {
-                    Log.d("ZHEKA", "deleteDirectory file = " + files[i].getAbsolutePath());
-                    files[i].delete();
-                }
-            }
-        }
-        return( path.delete() );
-    }
-
-    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d("ZHEKA", "onActivityResult");
@@ -108,20 +89,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
             case REQUEST_CODE_GALLERY:
-
+                if(resultCode == RESULT_OK){
+                    Uri uri = data.getData();
+                    Log.d("IGOR", "uri = " + uri);
+                    String[] filePathColumn = { MediaStore.Images.Media.DATA };
+                    Cursor cursor = getContentResolver().query(uri,
+                            filePathColumn, null, null, null);
+                    cursor.moveToFirst();
+                    int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                    String photoPath = cursor.getString(columnIndex);
+                    cursor.close();
+                    Log.d("IGOR", "photoPath = " + photoPath);
+                    startActivity(new Intent(this, PaintActivity.class)
+                            .putExtra(EXTRA_KEY_PHOTO_PATH, photoPath));
+                }
                 break;
         }
     }
 
     private void createDirectory(){
-        directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "FigurePaintPhoto");
-        if(!directory.exists()){
-            directory.mkdirs();
+        directoryPhoto = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "FigurePaintPhoto");
+        directoryChangedPhoto = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "FigurePaintChangedPhoto");
+        if(!directoryPhoto.exists()){
+            directoryPhoto.mkdirs();
+            Log.d("ZHEKA", "createDirectory directoryPhoto.exists() = " + directoryPhoto.exists());
+        }
+        if(!directoryChangedPhoto.exists()){
+            directoryChangedPhoto.mkdirs();
+            Log.d("ZHEKA", "createDirectory directoryChangedPhoto.exists() = " + directoryChangedPhoto.exists());
         }
     }
 
     private Uri generateUri(){
-        photoFile = new File(directory.getPath() + "/photo_" + System.currentTimeMillis() + ".jpg");
+        photoFile = new File(directoryPhoto.getPath() + "/photo_" + System.currentTimeMillis() + ".jpg");
         Log.d("ZHEKA", "photoPath = " + photoFile.getAbsolutePath());
         return Uri.fromFile(photoFile);
     }
@@ -139,8 +139,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.imageButtonGalleryPhoto:
                 currentClickedImageButton = id;
                 imageButtonGalleryPhoto.startAnimation(onClickAnimation);
-                imageButtonCameraPhoto.setEnabled(true);
-                imageButtonGalleryPhoto.setEnabled(true);
+                imageButtonCameraPhoto.setEnabled(false);
+                imageButtonGalleryPhoto.setEnabled(false);
                 break;
         }
     }
@@ -152,14 +152,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onAnimationEnd(Animation animation) {
+        Intent intent;
         switch(currentClickedImageButton){
             case R.id.imageButtonCameraPhoto:
-                Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, generateUri());
-                startActivityForResult(intent, REQUEST_CODE_CAMERA);
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+                    saveImage();
+                }else{
+                    createDirectory();
+                    intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, generateUri());
+                    startActivityForResult(intent, REQUEST_CODE_CAMERA);
+                }
                 break;
             case R.id.imageButtonGalleryPhoto:
-                //startActivity(new Intent(this, PaintActivity.class));
+                intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                intent.setType("image/*");
+                startActivityForResult(intent, REQUEST_CODE_GALLERY);
                 break;
         }
     }
@@ -167,5 +175,69 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onAnimationRepeat(Animation animation) {
 
+    }
+
+    private void saveImage() {
+        // Проверить, есть ли у приложения разрешение,
+        // необходимое для сохранения
+        if (checkSelfPermission(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+
+            // Объяснить, почему понадобилось разрешение
+            if (shouldShowRequestPermissionRationale(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                AlertDialog.Builder builder =
+                        new AlertDialog.Builder(this);
+
+                // Назначить сообщение AlertDialog
+                builder.setMessage(R.string.permission_explanation);
+
+                // Добавить кнопку OK в диалоговое окно
+                builder.setPositiveButton( android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Запросить разрешение
+                        requestPermissions(
+                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    SAVE_IMAGE_PERMISSION_REQUEST_CODE);
+                        }
+                    }
+                );
+
+                // Отображение диалогового окна
+                builder.create().show();
+            }else {
+                // Запросить разрешение
+                requestPermissions(
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            SAVE_IMAGE_PERMISSION_REQUEST_CODE);
+                }
+            }
+        else { // Если разрешение уже имеет разрешение для записи
+            createDirectory();
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, generateUri());
+            startActivityForResult(intent, REQUEST_CODE_CAMERA);
+        }
+    }
+
+    // Вызывается системой, когда пользователь предоставляет
+    // или отклоняет разрешение для сохранения изображения
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        // switch выбирает действие в зависимости от того,
+        // какое разрешение было запрошено
+        switch (requestCode) {
+            case SAVE_IMAGE_PERMISSION_REQUEST_CODE:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    createDirectory();
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, generateUri());
+                    startActivityForResult(intent, REQUEST_CODE_CAMERA);
+                }
+                break;
+        }
     }
 }

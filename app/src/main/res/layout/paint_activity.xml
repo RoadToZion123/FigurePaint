@@ -27,6 +27,24 @@
         app:layout_anchorGravity="top|left"/>
 
     <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabSave"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_save"
+        app:backgroundTint="@color/colorImageViewBottomSheet"
+        android:layout_margin="16dp"
+        android:layout_gravity="top|left"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fabDelete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_delete"
+        app:backgroundTint="@color/colorImageViewBottomSheet"
+        android:layout_margin="16dp"
+        android:layout_gravity="top|right"/>
+
+    <android.support.design.widget.FloatingActionButton
         android:id="@+id/fabInstruments"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
